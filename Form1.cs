@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MySql.Data;
 using MySql.Data.MySqlClient;
 
 namespace dynmapConverter
@@ -95,7 +96,7 @@ namespace dynmapConverter
                     MessageBox.Show("started conversion from: " + from +" to: " + to);
                 }
 
-                if (from == "MySQL")
+                if (from == "MySQL" || to == "MySQL")
                 {
                     dbC.Password = msPwd;
                     dbC.UserName = msUser;
@@ -105,7 +106,7 @@ namespace dynmapConverter
 
                 if (dbC.IsConnect())
                 {
-                    
+                    MessageBox.Show("sucessfully connected to: " + dbC.Server);
                 }
             }
         }
@@ -137,8 +138,26 @@ namespace dynmapConverter
                 if (string.IsNullOrEmpty(DatabaseName))
                     return false;
                 string connString = string.Format("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
-                Connection = new MySqlConnection(connString);
-                Connection.Open();
+                try
+                {
+                    Connection = new MySqlConnection(connString);
+                    Connection.Open();
+                }
+                catch (MySqlException ex)
+                {
+                    switch (ex.Number)
+                    {
+                        case 0:
+                            MessageBox.Show("Cannot connect to server.  Contact administrator");
+                            break;
+
+                        case 1045:
+                            MessageBox.Show("Invalid username/password, please try again");
+                            break;
+                        case 1042:
+                            break;
+                    }
+                }
             }
             return true;
         }
