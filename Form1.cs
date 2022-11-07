@@ -167,7 +167,7 @@ namespace dynmapConverter
                     {
                         MessageBox.Show("sucessfully connected to: " + dbC.Server);
                     }
-                    dbC.initDatabase();
+                    dbC.InitDatabase();
                     foreach (var d in directories)
                     {
                         Console.WriteLine(d);
@@ -177,9 +177,29 @@ namespace dynmapConverter
                             foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly))
                             {
                                 Console.WriteLine(MCAFolder);
-                                foreach (var image in Path.GetFileNameWithoutExtension(MCAFolder))
+                                foreach (var image in Directory.GetFiles(MCAFolder))
                                 {
-
+                                    FileStream fs = new FileStream(image, FileMode.Open, FileAccess.Read);
+                                    BinaryReader br = new BinaryReader(fs);
+                                    byte[] imageData = br.ReadBytes((int)fs.Length);
+                                    br.Close();
+                                    fs.Close();
+                                    string imageName = Path.GetFileNameWithoutExtension(image);
+                                    string[] imageNameChunks = imageName.Split('_');
+                                    int x = Int32.Parse(imageNameChunks[imageNameChunks.Length - 2]);
+                                    int y = Int32.Parse(imageNameChunks[imageNameChunks.Length - 1]);
+                                    int zoomLevel;
+                                    try
+                                    {
+                                        zoomLevel = imageNameChunks[imageNameChunks.Length - 3].Length;
+                                    }
+                                    catch (IndexOutOfRangeException)
+                                    {
+                                        zoomLevel = 0;
+                                    }
+                                    Console.WriteLine("bla");
+                                    Console.WriteLine(imageName + " x " + x + " y " + y + " zoom " + zoomLevel + " mapsCount " + mapsCount);
+                                    dbC.SendData(mapsCount, x, y, zoomLevel, imageData);
                                 }
                             }
                         }
@@ -249,7 +269,7 @@ namespace dynmapConverter
             }
             return true;
         }
-        public bool initDatabase()
+        public bool InitDatabase()
         {
             if (prefix == null)
             {
@@ -291,9 +311,25 @@ namespace dynmapConverter
 
             return true;
         }
-        public bool sendData(int mapID, int x, int y, int zoom, int NewImage)
+        public bool SendData(int mapID, int x, int y, int zoom, byte[] NewImage)
         {
-            //string insertMapQuery = "INSERT INTO " + tableTiles + "(mapID, X,"
+            if (Connection.State != ConnectionState.Open)
+            {
+                Connection.Open();
+            }
+                string insertMapQuery = "INSERT INTO " + tableTiles + "(mapID, x, y, HashCode, LastUpdate, Format, zoom, NewImage) VALUES('" + mapID + "','" + x + "','" + y + "',0,0,1,'" + zoom + "',?Images);";
+            MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
+            MySqlParameter parImage = new MySqlParameter
+            {
+                ParameterName = "?Images",
+                MySqlDbType = MySqlDbType.MediumBlob,
+                Size = 3000000,
+                Value = NewImage//here you should put your byte []
+            };
+            mySqlCommand.Parameters.Add(parImage);
+            mySqlCommand.ExecuteNonQuery();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            Connection.Close();
             return true;
         }
         public void Close()
