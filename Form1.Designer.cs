@@ -36,16 +36,16 @@
             this.Start = new System.Windows.Forms.Button();
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.progressLabel = new System.Windows.Forms.Label();
-            this.fromOpenFileDialog = new System.Windows.Forms.OpenFileDialog();
-            this.toOpenFIleDialog = new System.Windows.Forms.OpenFileDialog();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.textBox2 = new System.Windows.Forms.TextBox();
-            this.textBox3 = new System.Windows.Forms.TextBox();
-            this.textBox4 = new System.Windows.Forms.TextBox();
-            this.mysqlUser = new System.Windows.Forms.Label();
-            this.mysqlPasswd = new System.Windows.Forms.Label();
-            this.mysqlDb = new System.Windows.Forms.Label();
-            this.mysqlAddr = new System.Windows.Forms.Label();
+            this.mysqlAddr = new System.Windows.Forms.TextBox();
+            this.mysqlUser = new System.Windows.Forms.TextBox();
+            this.mysqlPasswd = new System.Windows.Forms.TextBox();
+            this.mysqlDatabase = new System.Windows.Forms.TextBox();
+            this.mysqlUserText = new System.Windows.Forms.Label();
+            this.mysqlPasswdText = new System.Windows.Forms.Label();
+            this.mysqlDbText = new System.Windows.Forms.Label();
+            this.mysqlAddress = new System.Windows.Forms.Label();
+            this.fromFolderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.toFolderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.SuspendLayout();
             // 
             // label1
@@ -78,7 +78,10 @@
             // storageToCombobox
             // 
             this.storageToCombobox.FormattingEnabled = true;
-            this.storageToCombobox.Items.AddRange(new object[] {"FileTree", "SQLite", "MySQL"});
+            this.storageToCombobox.Items.AddRange(new object[] {
+            "FileTree",
+            "SQLite",
+            "MySQL"});
             this.storageToCombobox.Location = new System.Drawing.Point(565, 208);
             this.storageToCombobox.Name = "storageToCombobox";
             this.storageToCombobox.Size = new System.Drawing.Size(120, 21);
@@ -88,7 +91,10 @@
             // storageFromCombobox
             // 
             this.storageFromCombobox.FormattingEnabled = true;
-            this.storageFromCombobox.Items.AddRange(new object[] {"FileTree", "SQLite", "MySQL"});
+            this.storageFromCombobox.Items.AddRange(new object[] {
+            "FileTree",
+            "SQLite",
+            "MySQL"});
             this.storageFromCombobox.Location = new System.Drawing.Point(163, 208);
             this.storageFromCombobox.Name = "storageFromCombobox";
             this.storageFromCombobox.Size = new System.Drawing.Size(117, 21);
@@ -122,103 +128,99 @@
             this.progressLabel.TabIndex = 7;
             this.progressLabel.Text = "Wait_For_User_Input";
             // 
-            // fromOpenFileDialog
+            // mysqlAddr
             // 
-            this.fromOpenFileDialog.FileName = "fromOpenFileDialog";
-            // 
-            // toOpenFIleDialog
-            // 
-            this.toOpenFIleDialog.FileName = "toOpenFileDialog";
-            // 
-            // textBox1
-            // 
-            this.textBox1.Location = new System.Drawing.Point(403, 270);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(96, 20);
-            this.textBox1.TabIndex = 9;
-            this.textBox1.Visible = false;
-            // 
-            // textBox2
-            // 
-            this.textBox2.Location = new System.Drawing.Point(403, 295);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(96, 20);
-            this.textBox2.TabIndex = 10;
-            this.textBox2.Visible = false;
-            // 
-            // textBox3
-            // 
-            this.textBox3.Location = new System.Drawing.Point(403, 320);
-            this.textBox3.Name = "textBox3";
-            this.textBox3.Size = new System.Drawing.Size(96, 20);
-            this.textBox3.TabIndex = 11;
-            this.textBox3.Visible = false;
-            // 
-            // textBox4
-            // 
-            this.textBox4.Location = new System.Drawing.Point(403, 345);
-            this.textBox4.Name = "textBox4";
-            this.textBox4.Size = new System.Drawing.Size(96, 20);
-            this.textBox4.TabIndex = 12;
-            this.textBox4.Visible = false;
+            this.mysqlAddr.Location = new System.Drawing.Point(403, 270);
+            this.mysqlAddr.Name = "mysqlAddr";
+            this.mysqlAddr.Size = new System.Drawing.Size(96, 20);
+            this.mysqlAddr.TabIndex = 9;
+            this.mysqlAddr.Text = "192.168.178.49";
+            this.mysqlAddr.Visible = false;
             // 
             // mysqlUser
             // 
-            this.mysqlUser.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.mysqlUser.Location = new System.Drawing.Point(287, 295);
+            this.mysqlUser.Location = new System.Drawing.Point(403, 295);
             this.mysqlUser.Name = "mysqlUser";
-            this.mysqlUser.Size = new System.Drawing.Size(119, 21);
-            this.mysqlUser.TabIndex = 13;
-            this.mysqlUser.Text = "MySQL USER:\r\n\r\n";
-            this.mysqlUser.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.mysqlUser.Size = new System.Drawing.Size(96, 20);
+            this.mysqlUser.TabIndex = 10;
+            this.mysqlUser.Text = "dynmap";
             this.mysqlUser.Visible = false;
             // 
             // mysqlPasswd
             // 
-            this.mysqlPasswd.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.mysqlPasswd.Location = new System.Drawing.Point(260, 320);
+            this.mysqlPasswd.Location = new System.Drawing.Point(403, 320);
             this.mysqlPasswd.Name = "mysqlPasswd";
-            this.mysqlPasswd.Size = new System.Drawing.Size(146, 21);
-            this.mysqlPasswd.TabIndex = 13;
-            this.mysqlPasswd.Text = "MySQL PASSWD:\r\n\r\n";
-            this.mysqlPasswd.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.mysqlPasswd.Size = new System.Drawing.Size(96, 20);
+            this.mysqlPasswd.TabIndex = 11;
+            this.mysqlPasswd.Text = "Dynmap";
             this.mysqlPasswd.Visible = false;
             // 
-            // mysqlDb
+            // mysqlDatabase
             // 
-            this.mysqlDb.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.mysqlDb.Location = new System.Drawing.Point(244, 344);
-            this.mysqlDb.Name = "mysqlDb";
-            this.mysqlDb.Size = new System.Drawing.Size(162, 21);
-            this.mysqlDb.TabIndex = 13;
-            this.mysqlDb.Text = "MySQL DATABASE:\r\n\r\n";
-            this.mysqlDb.TextAlign = System.Drawing.ContentAlignment.TopRight;
-            this.mysqlDb.Visible = false;
+            this.mysqlDatabase.Location = new System.Drawing.Point(403, 345);
+            this.mysqlDatabase.Name = "mysqlDatabase";
+            this.mysqlDatabase.Size = new System.Drawing.Size(96, 20);
+            this.mysqlDatabase.TabIndex = 12;
+            this.mysqlDatabase.Text = "DynmapConverter";
+            this.mysqlDatabase.Visible = false;
             // 
-            // mysqlAddr
+            // mysqlUserText
             // 
-            this.mysqlAddr.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.mysqlAddr.Location = new System.Drawing.Point(299, 271);
-            this.mysqlAddr.Name = "mysqlAddr";
-            this.mysqlAddr.Size = new System.Drawing.Size(104, 18);
-            this.mysqlAddr.TabIndex = 14;
-            this.mysqlAddr.Text = "MySQL IP:";
-            this.mysqlAddr.TextAlign = System.Drawing.ContentAlignment.TopRight;
-            this.mysqlAddr.Visible = false;
+            this.mysqlUserText.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.mysqlUserText.Location = new System.Drawing.Point(287, 295);
+            this.mysqlUserText.Name = "mysqlUserText";
+            this.mysqlUserText.Size = new System.Drawing.Size(119, 21);
+            this.mysqlUserText.TabIndex = 13;
+            this.mysqlUserText.Text = "MySQL USER:\r\n\r\n";
+            this.mysqlUserText.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.mysqlUserText.Visible = false;
+            // 
+            // mysqlPasswdText
+            // 
+            this.mysqlPasswdText.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.mysqlPasswdText.Location = new System.Drawing.Point(260, 320);
+            this.mysqlPasswdText.Name = "mysqlPasswdText";
+            this.mysqlPasswdText.Size = new System.Drawing.Size(146, 21);
+            this.mysqlPasswdText.TabIndex = 13;
+            this.mysqlPasswdText.Text = "MySQL PASSWD:\r\n\r\n";
+            this.mysqlPasswdText.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.mysqlPasswdText.Visible = false;
+            // 
+            // mysqlDbText
+            // 
+            this.mysqlDbText.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.mysqlDbText.Location = new System.Drawing.Point(244, 344);
+            this.mysqlDbText.Name = "mysqlDbText";
+            this.mysqlDbText.Size = new System.Drawing.Size(162, 21);
+            this.mysqlDbText.TabIndex = 13;
+            this.mysqlDbText.Text = "MySQL DATABASE:\r\n\r\n";
+            this.mysqlDbText.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.mysqlDbText.Visible = false;
+            // 
+            // mysqlAddress
+            // 
+            this.mysqlAddress.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.mysqlAddress.Location = new System.Drawing.Point(299, 271);
+            this.mysqlAddress.Name = "mysqlAddress";
+            this.mysqlAddress.Size = new System.Drawing.Size(104, 18);
+            this.mysqlAddress.TabIndex = 14;
+            this.mysqlAddress.Text = "MySQL IP:";
+            this.mysqlAddress.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.mysqlAddress.Visible = false;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Controls.Add(this.mysqlAddr);
-            this.Controls.Add(this.mysqlDb);
+            this.Controls.Add(this.mysqlAddress);
+            this.Controls.Add(this.mysqlDbText);
+            this.Controls.Add(this.mysqlPasswdText);
+            this.Controls.Add(this.mysqlUserText);
+            this.Controls.Add(this.mysqlDatabase);
             this.Controls.Add(this.mysqlPasswd);
             this.Controls.Add(this.mysqlUser);
-            this.Controls.Add(this.textBox4);
-            this.Controls.Add(this.textBox3);
-            this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.mysqlAddr);
             this.Controls.Add(this.progressLabel);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.Start);
@@ -229,24 +231,23 @@
             this.Controls.Add(this.label1);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
 
-        private System.Windows.Forms.Label mysqlAddr;
+        private System.Windows.Forms.Label mysqlAddress;
 
-        private System.Windows.Forms.Label mysqlPasswd;
-        private System.Windows.Forms.Label mysqlDb;
-        private System.Windows.Forms.TextBox textBox2;
-        private System.Windows.Forms.TextBox textBox3;
-        private System.Windows.Forms.TextBox textBox4;
+        private System.Windows.Forms.Label mysqlPasswdText;
+        private System.Windows.Forms.Label mysqlDbText;
+        private System.Windows.Forms.TextBox mysqlUser;
+        private System.Windows.Forms.TextBox mysqlPasswd;
+        private System.Windows.Forms.TextBox mysqlDatabase;
 
-        private System.Windows.Forms.Label mysqlUser;
+        private System.Windows.Forms.Label mysqlUserText;
 
-        private System.Windows.Forms.TextBox textBox1;
-
-        private System.Windows.Forms.OpenFileDialog fromOpenFileDialog;
-        private System.Windows.Forms.OpenFileDialog toOpenFIleDialog;
+        private System.Windows.Forms.TextBox mysqlAddr;
 
         private System.Windows.Forms.Label progressLabel;
 
@@ -263,6 +264,8 @@
         private System.Windows.Forms.Label label3;
 
         #endregion
+        private System.Windows.Forms.FolderBrowserDialog fromFolderBrowserDialog;
+        private System.Windows.Forms.FolderBrowserDialog toFolderBrowserDialog;
     }
 }
 
