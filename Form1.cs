@@ -16,6 +16,7 @@ using MySql.Data;
 using MySql.Data.MySqlClient;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace dynmapConverter
 {
@@ -24,6 +25,7 @@ namespace dynmapConverter
         public Form1()
         {
             InitializeComponent();
+            _cv.UpdateProgress += UpdateProgress;
         }
         private void storageFromCombobox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -108,15 +110,16 @@ namespace dynmapConverter
             _cv.msPwd = mysqlPasswd.Text;
             _cv.msAddr = mysqlAddr.Text;
             _cv.msDb = mysqlDatabase.Text;
-            progressBar1.Value += 1;
             _cv.start = true;
             _cv.StartConversion();
         }
-
+        private void UpdateProgress(int progress)
+        {
+            progressBar1.Value = progress;  
+        }
         private string _itemFrom = "";
         private string _itemTo = "";
         private Convert _cv = new Convert();
-
         private void Form1_Load(object sender, EventArgs e)
         {
 
@@ -136,8 +139,13 @@ namespace dynmapConverter
         public bool start { get; set; }
         private DbConnection dbC = DbConnection.Instance();
         private int mapsCount { get; set; }
+        private int totalFoldersCount { get; set; }
+        private int foldersCount { get; set; }
         private string configDirFileLocation { get; set; }
         private GetConfigFile getConfig = new GetConfigFile();
+        internal delegate void UpdateProgressDelegate(int ProgressPercentage);
+
+        internal event UpdateProgressDelegate UpdateProgress;
         public void StartConversion()
         {
             fromPath = "C:\\Users\\Jurgen\\Dynmap-tests\\paper-1.16.5\\plugins\\dynmap\\web\\tiles";
@@ -173,10 +181,19 @@ namespace dynmapConverter
                         Console.WriteLine(d);
                         foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
                         {
-                            mapsCount++;
                             foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly))
+                                totalFoldersCount++;
+                        }
+                    }
+                    foreach (var d in directories)
+                    {
+                        Console.WriteLine(d);
+                        foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
+                        {
+                            mapsCount++;
+                            foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly)) //<worldname>/mapmape/mcaTileFolder
                             {
-                                Console.WriteLine(MCAFolder);
+                                foldersCount++;
                                 foreach (var image in Directory.GetFiles(MCAFolder))
                                 {
                                     FileStream fs = new FileStream(image, FileMode.Open, FileAccess.Read);
@@ -189,23 +206,26 @@ namespace dynmapConverter
                                     int x = Int32.Parse(imageNameChunks[imageNameChunks.Length - 2]);
                                     int y = Int32.Parse(imageNameChunks[imageNameChunks.Length - 1]);
                                     int zoomLevel;
-                                    try
+                                    if (imageNameChunks.Length > 2)
                                     {
                                         zoomLevel = imageNameChunks[imageNameChunks.Length - 3].Length;
                                     }
-                                    catch (IndexOutOfRangeException)
+                                    else
                                     {
                                         zoomLevel = 0;
                                     }
-                                    Console.WriteLine("bla");
-                                    Console.WriteLine(imageName + " x " + x + " y " + y + " zoom " + zoomLevel + " mapsCount " + mapsCount);
+                                    //Console.WriteLine(zoomLevel);
+                                    //Console.WriteLine(imageName + " x " + x + " y " + y + " zoom " + zoomLevel + " mapsCount " + mapsCount);
                                     dbC.SendData(mapsCount, x, y, zoomLevel, imageData);
                                 }
+                                Console.WriteLine(MCAFolder);
+                                UpdateProgress(foldersCount*100/totalFoldersCount);
+                                Application.DoEvents();
                             }
+                            dbC.Close();
                         }
                     }
-                    
-                    MessageBox.Show(mapsCount.ToString());
+                    //MessageBox.Show(mapsCount.ToString());
                 }
             }
         }
@@ -327,9 +347,8 @@ namespace dynmapConverter
                 Value = NewImage//here you should put your byte []
             };
             mySqlCommand.Parameters.Add(parImage);
-            mySqlCommand.ExecuteNonQuery();
+            mySqlCommand.ExecuteNonQueryAsync();
             //Int64 result = (long)mySqlCommand.ExecuteScalar();
-            Connection.Close();
             return true;
         }
         public void Close()
