@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
@@ -46,6 +47,8 @@
             this.mysqlAddress = new System.Windows.Forms.Label();
             this.fromFolderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.toFolderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -79,7 +82,6 @@
             // 
             this.storageToCombobox.FormattingEnabled = true;
             this.storageToCombobox.Items.AddRange(new object[] {
-            "FileTree",
             "SQLite",
             "MySQL"});
             this.storageToCombobox.Location = new System.Drawing.Point(565, 208);
@@ -93,8 +95,7 @@
             this.storageFromCombobox.FormattingEnabled = true;
             this.storageFromCombobox.Items.AddRange(new object[] {
             "FileTree",
-            "SQLite",
-            "MySQL"});
+            "SQLite"});
             this.storageFromCombobox.Location = new System.Drawing.Point(163, 208);
             this.storageFromCombobox.Name = "storageFromCombobox";
             this.storageFromCombobox.Size = new System.Drawing.Size(117, 21);
@@ -134,7 +135,6 @@
             this.mysqlAddr.Name = "mysqlAddr";
             this.mysqlAddr.Size = new System.Drawing.Size(96, 20);
             this.mysqlAddr.TabIndex = 9;
-            this.mysqlAddr.Text = "192.168.178.49";
             this.mysqlAddr.Visible = false;
             // 
             // mysqlUser
@@ -143,7 +143,6 @@
             this.mysqlUser.Name = "mysqlUser";
             this.mysqlUser.Size = new System.Drawing.Size(96, 20);
             this.mysqlUser.TabIndex = 10;
-            this.mysqlUser.Text = "dynmap";
             this.mysqlUser.Visible = false;
             // 
             // mysqlPasswd
@@ -152,7 +151,6 @@
             this.mysqlPasswd.Name = "mysqlPasswd";
             this.mysqlPasswd.Size = new System.Drawing.Size(96, 20);
             this.mysqlPasswd.TabIndex = 11;
-            this.mysqlPasswd.Text = "Dynmap";
             this.mysqlPasswd.Visible = false;
             // 
             // mysqlDatabase
@@ -161,7 +159,6 @@
             this.mysqlDatabase.Name = "mysqlDatabase";
             this.mysqlDatabase.Size = new System.Drawing.Size(96, 20);
             this.mysqlDatabase.TabIndex = 12;
-            this.mysqlDatabase.Text = "DynmapConverter";
             this.mysqlDatabase.Visible = false;
             // 
             // mysqlUserText
@@ -208,11 +205,23 @@
             this.mysqlAddress.TextAlign = System.Drawing.ContentAlignment.TopRight;
             this.mysqlAddress.Visible = false;
             // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(626, 13);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(162, 163);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox1.TabIndex = 15;
+            this.pictureBox1.TabStop = false;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.mysqlAddress);
             this.Controls.Add(this.mysqlDbText);
             this.Controls.Add(this.mysqlPasswdText);
@@ -229,9 +238,11 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "Dynmap Converter";
             this.Load += new System.EventHandler(this.Form1_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -266,6 +277,7 @@
         #endregion
         private System.Windows.Forms.FolderBrowserDialog fromFolderBrowserDialog;
         private System.Windows.Forms.FolderBrowserDialog toFolderBrowserDialog;
+        private System.Windows.Forms.PictureBox pictureBox1;
     }
 }
 

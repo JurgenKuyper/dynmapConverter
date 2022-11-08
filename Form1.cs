@@ -143,7 +143,6 @@ namespace dynmapConverter
         internal event UpdateProgressDelegate UpdateProgress;
         public void StartConversion()
         {
-            fromPath = "C:\\Users\\Jurgen\\Dynmap-tests\\paper-1.16.5\\plugins\\dynmap\\web\\tiles";
             configDirFileLocation = getConfig.getDynmapConfig(fromPath);
             configDirLocation = getConfig.getDynmapConfigFolder(fromPath);
             Console.WriteLine(configDirFileLocation);
@@ -295,6 +294,34 @@ namespace dynmapConverter
                         }
                     }
                 }
+                if (from == "SQLite" && to == "MySQL")
+                {
+                    dbC.Password = msPwd;
+                    dbC.UserName = msUser;
+                    dbC.Server = msAddr;
+                    dbC.DatabaseName = msDb;
+                    if (dbC.IsConnect())
+                    {
+                        MessageBox.Show("sucessfully connected to: " + dbC.Server);
+                    }
+                    dbC.InitDatabase();
+                    if (string.IsNullOrEmpty(SQLite.dbfile))
+                    {
+                        MessageBox.Show("Cannot connect to server: DBFile not configured in configuration.txt");
+                    }
+                    else
+                    {
+                        Connection = SQLite.IsConnect;
+                        MessageBox.Show("sucessfully connected to: " + Connection.FileName);
+                        SQLite.CreateTable(Connection);
+                    }
+                    DataTable dt = SQLite.ReadData(Connection);
+                    foreach(DataRow row in dt.Rows)
+                    {
+                        Console.WriteLine(row["MapID"]);
+                        dbC.SendData((int)row["MapID"], (int)row["x"], (int)row["y"], (int)row["zoom"], (byte[])row["Image"]);
+                    }
+                }
             }
         }
     }
@@ -332,7 +359,7 @@ namespace dynmapConverter
             {
                 if (string.IsNullOrEmpty(DatabaseName))
                     return false;
-                Console.WriteLine("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
+                //Console.WriteLine("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
                 string connString = string.Format("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
                 try
                 {
@@ -387,7 +414,7 @@ namespace dynmapConverter
                 string setTableSchemaVersionValueQuery = "INSERT INTO " + tableSchemaVersion + " (level) VALUES (6);";
 
                 string[] queries = { createTableMapsQuery, createTableTilesQuery, createTableFacesQuery, createTableMarkerIconsQuery, createTableMarkerFilesQuery, createTableStandaloneFilesQuery, createTableMapsIndexQuery, createTableSchemaVersionQuery, setTableSchemaVersionValueQuery };
-                Console.WriteLine(queries);
+                //Console.WriteLine(queries);
                 foreach (var query in queries)
                 {
                     Console.WriteLine(query);
@@ -405,7 +432,7 @@ namespace dynmapConverter
             {
                 Connection.Open();
             }
-                string insertMapQuery = "INSERT INTO " + tableTiles + "(mapID, x, y, HashCode, LastUpdate, Format, zoom, NewImage) VALUES('" + mapID + "','" + x + "','" + y + "',0,0,1,'" + zoom + "',?Images);";
+            string insertMapQuery = "INSERT INTO " + tableTiles + "(mapID, x, y, HashCode, LastUpdate, Format, zoom, NewImage) VALUES('" + mapID + "','" + x + "','" + y + "',0,0,1,'" + zoom + "',?Images);";
             MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
             MySqlParameter parImage = new MySqlParameter
             {
@@ -443,10 +470,9 @@ namespace dynmapConverter
             {
                 if (Connection == null)
                 {
-                    Console.WriteLine("FileName={0}", dbfile);
                     SQLiteConnection sqlite_conn;
                     // Create a new database connection:
-                    sqlite_conn = new SQLiteConnection("Data Source=" + dbfile + ";");
+                    sqlite_conn = new SQLiteConnection("Data Source=" + dbfile + ";New=False;");
                     try
                     {
                         sqlite_conn.Open();
@@ -474,7 +500,7 @@ namespace dynmapConverter
             }
             catch (Exception ex)
             {
-
+                MessageBox.Show(ex.ToString());
             }
             return sqlite_conn;
         }
@@ -533,35 +559,25 @@ namespace dynmapConverter
             return true;
         }
 
-        static void InsertData(SQLiteConnection conn)
+        public DataTable ReadData(SQLiteConnection conn)
         {
-            SQLiteCommand sqlite_cmd;
-            sqlite_cmd = conn.CreateCommand();
-            sqlite_cmd.CommandText = "INSERT INTO SampleTable(Col1, Col2) VALUES('Test Text ', 1); ";
-            sqlite_cmd.ExecuteNonQuery();
-            sqlite_cmd.CommandText = "INSERT INTO SampleTable(Col1, Col2) VALUES('Test1 Text1 ', 2); ";
-            sqlite_cmd.ExecuteNonQuery();
-            sqlite_cmd.CommandText = "INSERT INTO SampleTable(Col1, Col2) VALUES('Test2 Text2 ', 3); ";
-            sqlite_cmd.ExecuteNonQuery();
-            sqlite_cmd.CommandText = "INSERT INTO SampleTable1(Col1, Col2) VALUES('Test3 Text3 ', 3); ";
-            sqlite_cmd.ExecuteNonQuery();
+            SQLiteDataAdapter ad;
+            DataTable dt = new DataTable();
 
-        }
-
-        static void ReadData(SQLiteConnection conn)
-        {
-            SQLiteDataReader sqlite_datareader;
-            SQLiteCommand sqlite_cmd;
-            sqlite_cmd = conn.CreateCommand();
-            sqlite_cmd.CommandText = "SELECT * FROM SampleTable";
-
-            sqlite_datareader = sqlite_cmd.ExecuteReader();
-            while (sqlite_datareader.Read())
+            try
             {
-                string myreader = sqlite_datareader.GetString(0);
-                Console.WriteLine(myreader);
+                SQLiteCommand cmd;
+                cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT * FROM Tiles";  //set the passed query
+                ad = new SQLiteDataAdapter(cmd);
+                ad.Fill(dt); //fill the datasource
             }
-            conn.Close();
+            catch (SQLiteException ex)
+            {
+                MessageBox.Show(ex.ToString());
+                //Add your exception code here.
+            }
+            return dt;
         }
     }
 
