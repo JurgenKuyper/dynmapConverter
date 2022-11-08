@@ -1,22 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
 using System.Data;
-using System.Drawing;
+using System.Data.SQLite;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using FlexibleConfiguration.Providers;
-using MySql.Data;
 using MySql.Data.MySqlClient;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace dynmapConverter
 {
@@ -52,7 +44,7 @@ namespace dynmapConverter
                 mysqlUser.Visible = false;
                 mysqlPasswd.Visible = false;
                 mysqlDatabase.Visible = false;
-                if (_itemFrom == "FileTree")
+                if (_itemFrom == "FileTree" || _itemFrom == "SQLite")
                 {
                     FolderBrowserDialog fromFolderBrowserDialog = new FolderBrowserDialog();
                     DialogResult fromDialogResult = fromFolderBrowserDialog.ShowDialog();
@@ -91,7 +83,7 @@ namespace dynmapConverter
                 mysqlUser.Visible = false;
                 mysqlPasswd.Visible = false;
                 mysqlDatabase.Visible = false;
-                if (_itemTo == "FileTree")
+                if (_itemTo == "FileTree" || _itemTo == "SQLite")
                 {
                     FolderBrowserDialog toFolderBrowserDialog = new FolderBrowserDialog();
                     DialogResult toDialogResult = toFolderBrowserDialog.ShowDialog();
@@ -137,11 +129,14 @@ namespace dynmapConverter
         public string msAddr { get; set; }
         public string msDb { get; set; }
         public bool start { get; set; }
-        private DbConnection dbC = DbConnection.Instance();
+        private MysqlDBConnection dbC = MysqlDBConnection.Instance();
+        private SQLiteDBConnection SQLite = SQLiteDBConnection.Instance();
+        private SQLiteConnection Connection;
         private int mapsCount { get; set; }
         private int totalFoldersCount { get; set; }
         private int foldersCount { get; set; }
         private string configDirFileLocation { get; set; }
+        private string configDirLocation { get; set; }
         private GetConfigFile getConfig = new GetConfigFile();
         internal delegate void UpdateProgressDelegate(int ProgressPercentage);
 
@@ -150,17 +145,28 @@ namespace dynmapConverter
         {
             fromPath = "C:\\Users\\Jurgen\\Dynmap-tests\\paper-1.16.5\\plugins\\dynmap\\web\\tiles";
             configDirFileLocation = getConfig.getDynmapConfig(fromPath);
+            configDirLocation = getConfig.getDynmapConfigFolder(fromPath);
             Console.WriteLine(configDirFileLocation);
             var deserializer = new DeserializerBuilder().WithNamingConvention(UnderscoredNamingConvention.Instance).Build();
             dynamic myConfig = deserializer.Deserialize<ExpandoObject>(File.ReadAllText(configDirFileLocation));
 
             foreach (var item in myConfig)
             {
-                if (item.Key == "prefix")
+                if (item.Key == "storage")
                 {
-                    dbC.prefix = item.Value;
-                }
-                
+                    foreach (var entry in item.Value)
+                    {
+                        if (entry.Key == "prefix")
+                        {
+                            dbC.prefix = entry.Value;
+                        }
+                        else if (entry.Key == "dbfile")
+                        {
+                            SQLite.dbfile = string.Join(Path.DirectorySeparatorChar.ToString(), configDirLocation, entry.Value);
+                            Console.WriteLine(SQLite.dbfile);
+                        }
+                    }
+                } 
             }
             if (start && from != null && to != null)
             {
@@ -227,13 +233,75 @@ namespace dynmapConverter
                     }
                     //MessageBox.Show(mapsCount.ToString());
                 }
+                if (from == "FileTree" && to == "SQLite")
+                {
+                    if (string.IsNullOrEmpty(SQLite.dbfile))
+                    {
+                        MessageBox.Show("Cannot connect to server: DBFile not configured in configuration.txt");
+                    }
+                    else 
+                    {
+                        Connection = SQLite.IsConnect;
+                        MessageBox.Show("sucessfully connected to: " + Connection.FileName);
+                        SQLite.CreateTable(Connection);
+                        var directories = CustomSearcher.GetDirectories(fromPath, SearchOption.TopDirectoryOnly); //tiles/<worldname>
+                        foreach (var d in directories)
+                        {
+                            Console.WriteLine(d);
+                            foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
+                            {
+                                foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly))
+                                    totalFoldersCount++;
+                            }
+                        }
+                        foreach (var d in directories)
+                        {
+                            Console.WriteLine(d);
+                            foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
+                            {
+                                mapsCount++;
+                                foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly)) //<worldname>/mapmape/mcaTileFolder
+                                {
+                                    foldersCount++;
+                                    foreach (var image in Directory.GetFiles(MCAFolder))
+                                    {
+                                        FileStream fs = new FileStream(image, FileMode.Open, FileAccess.Read);
+                                        BinaryReader br = new BinaryReader(fs);
+                                        byte[] imageData = br.ReadBytes((int)fs.Length);
+                                        br.Close();
+                                        fs.Close();
+                                        string imageName = Path.GetFileNameWithoutExtension(image);
+                                        string[] imageNameChunks = imageName.Split('_');
+                                        int x = Int32.Parse(imageNameChunks[imageNameChunks.Length - 2]);
+                                        int y = Int32.Parse(imageNameChunks[imageNameChunks.Length - 1]);
+                                        int zoomLevel;
+                                        if (imageNameChunks.Length > 2)
+                                        {
+                                            zoomLevel = imageNameChunks[imageNameChunks.Length - 3].Length;
+                                        }
+                                        else
+                                        {
+                                            zoomLevel = 0;
+                                        }
+                                        //Console.WriteLine(zoomLevel);
+                                        //Console.WriteLine(imageName + " x " + x + " y " + y + " zoom " + zoomLevel + " mapsCount " + mapsCount);
+                                        SQLite.SendData(Connection, mapsCount, x, y, zoomLevel, imageData.Length, imageData);
+                                    }
+                                    Console.WriteLine(MCAFolder);
+                                    UpdateProgress(foldersCount * 100 / totalFoldersCount);
+                                    Application.DoEvents();
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    public class DbConnection
+    public class MysqlDBConnection
     {
-        private DbConnection()
+        private MysqlDBConnection()
         {
         }
         public string Server { get; set; }
@@ -243,7 +311,7 @@ namespace dynmapConverter
 
         private MySqlConnection Connection { get; set; }
 
-        private static DbConnection _instance = null;
+        private static MysqlDBConnection _instance = null;
         public string prefix { get; set; }
         private string tableTiles;
         private string tableMaps;
@@ -252,10 +320,10 @@ namespace dynmapConverter
         private string tableMarkerFiles;
         private string tableStandaloneFiles;
         private string tableSchemaVersion;
-        public static DbConnection Instance()
+        public static MysqlDBConnection Instance()
         {
             if (_instance == null)
-                _instance = new DbConnection();
+                _instance = new MysqlDBConnection();
             return _instance;
         }
         public bool IsConnect()
@@ -356,6 +424,147 @@ namespace dynmapConverter
             Connection.Close();
         }  
     }
+
+    public class SQLiteDBConnection
+    {
+        public string dbfile { get; set; }
+
+        private SQLiteConnection Connection { get; set; }
+        private static SQLiteDBConnection _instance = null;
+        public static SQLiteDBConnection Instance()
+        {
+            if (_instance == null)
+                _instance = new SQLiteDBConnection();
+            return _instance;
+        }
+        public SQLiteConnection IsConnect
+        {
+            get
+            {
+                if (Connection == null)
+                {
+                    Console.WriteLine("FileName={0}", dbfile);
+                    SQLiteConnection sqlite_conn;
+                    // Create a new database connection:
+                    sqlite_conn = new SQLiteConnection("Data Source=" + dbfile + ";");
+                    try
+                    {
+                        sqlite_conn.Open();
+                    }
+                    catch (SQLiteException ex)
+                    {
+                        MessageBox.Show("Cannot connect to server: " + ex);
+                    }
+                    return sqlite_conn;
+                }
+                else { return Connection; }
+            }
+        }
+
+        static SQLiteConnection CreateConnection(string database)
+        {
+
+            SQLiteConnection sqlite_conn;
+            // Create a new database connection:
+            sqlite_conn = new SQLiteConnection("Data Source=" + database + ";");
+            // Open the connection:
+            try
+            {
+                sqlite_conn.Open();
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return sqlite_conn;
+        }
+
+        public bool CreateTable(SQLiteConnection conn)
+        {
+            SQLiteDataReader sqlite_datareader;
+            SQLiteCommand sqlite_cmd;
+            sqlite_cmd = conn.CreateCommand();
+            sqlite_cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='SchemaVersion'";
+            sqlite_datareader = sqlite_cmd.ExecuteReader();
+            Int64 resultCheck = 0;
+            while (sqlite_datareader.Read())
+            {
+                resultCheck = sqlite_datareader.GetInt64(0);
+            }
+            if (resultCheck != 1)
+            {
+                string createTableMapsQuery = "CREATE TABLE Maps (ID INTEGER PRIMARY KEY AUTOINCREMENT, WorldID STRING NOT NULL, MapID STRING NOT NULL, Variant STRING NOT NULL)";
+                string createTableTilesQuery = "CREATE TABLE Tiles (MapID INT NOT NULL, x INT NOT NULL, y INT NOT NULL, zoom INT NOT NULL, HashCode INT NOT NULL, LastUpdate INT NOT NULL, Format INT NOT NULL, Image BLOB, ImageLen INT, PRIMARY KEY(MapID, x, y, zoom))";
+                string createTableFacesQuery = "CREATE TABLE Faces (PlayerName STRING NOT NULL, TypeID INT NOT NULL, Image BLOB, ImageLen INT, PRIMARY KEY(PlayerName, TypeID))";
+                string createTableMarkerIconsQuery = "CREATE TABLE MarkerIcons (IconName STRING PRIMARY KEY NOT NULL, Image BLOB, ImageLen INT)";
+                string createTableMarkerFilesQuery = "CREATE TABLE MarkerFiles (FileName STRING PRIMARY KEY NOT NULL, Content CLOB)";
+                // Add index, since SQLite execution planner is stupid and scans Tiles table instead of using short Maps table...
+                string createIndexMapindexQuery = "CREATE INDEX MapIndex ON Maps(WorldID, MapID, Variant)";
+                string createTableSchemaVersionQuery = "CREATE TABLE SchemaVersion (level INT PRIMARY KEY NOT NULL)";
+                string insertSchemaVersionQuery = "INSERT INTO SchemaVersion (level) VALUES (3)";
+                string[] queries = { createTableMapsQuery, createTableTilesQuery, createTableFacesQuery, createTableMarkerIconsQuery, createTableMarkerFilesQuery, createIndexMapindexQuery, createTableSchemaVersionQuery, insertSchemaVersionQuery };
+                sqlite_cmd = conn.CreateCommand();
+                foreach (var query in queries)
+                {
+                    Console.WriteLine(query);
+                    sqlite_cmd.CommandText = query;
+                    sqlite_cmd.ExecuteNonQuery();
+                }
+            }
+            return true;
+        }
+        public bool SendData(SQLiteConnection conn, int mapID, int x, int y,int zoom, int imageLength, byte[] NewImage)
+        {
+            string insertMapQuery = "INSERT INTO Tiles(mapID, x, y, zoom, HashCode, LastUpdate, Format, Image, ImageLen) VALUES('" + mapID + "','" + x + "','" + y + "','" + zoom + "',0,0,1,@Images," + imageLength + ")";
+            //string insertMapQuery = "update Tiles set Image = ?Images where MapID = 1;";
+            SQLiteCommand sqlite_cmd;
+            sqlite_cmd = conn.CreateCommand();
+            sqlite_cmd.CommandText = insertMapQuery;
+            SQLiteParameter parImage = new SQLiteParameter
+            {
+                ParameterName = "@Images",
+                DbType = DbType.Binary,
+                Size = 3000000,
+                Value = NewImage//here you should put your byte []
+            };
+            sqlite_cmd.Parameters.Add(parImage);
+            sqlite_cmd.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+
+        static void InsertData(SQLiteConnection conn)
+        {
+            SQLiteCommand sqlite_cmd;
+            sqlite_cmd = conn.CreateCommand();
+            sqlite_cmd.CommandText = "INSERT INTO SampleTable(Col1, Col2) VALUES('Test Text ', 1); ";
+            sqlite_cmd.ExecuteNonQuery();
+            sqlite_cmd.CommandText = "INSERT INTO SampleTable(Col1, Col2) VALUES('Test1 Text1 ', 2); ";
+            sqlite_cmd.ExecuteNonQuery();
+            sqlite_cmd.CommandText = "INSERT INTO SampleTable(Col1, Col2) VALUES('Test2 Text2 ', 3); ";
+            sqlite_cmd.ExecuteNonQuery();
+            sqlite_cmd.CommandText = "INSERT INTO SampleTable1(Col1, Col2) VALUES('Test3 Text3 ', 3); ";
+            sqlite_cmd.ExecuteNonQuery();
+
+        }
+
+        static void ReadData(SQLiteConnection conn)
+        {
+            SQLiteDataReader sqlite_datareader;
+            SQLiteCommand sqlite_cmd;
+            sqlite_cmd = conn.CreateCommand();
+            sqlite_cmd.CommandText = "SELECT * FROM SampleTable";
+
+            sqlite_datareader = sqlite_cmd.ExecuteReader();
+            while (sqlite_datareader.Read())
+            {
+                string myreader = sqlite_datareader.GetString(0);
+                Console.WriteLine(myreader);
+            }
+            conn.Close();
+        }
+    }
+
     public class CustomSearcher
     {
         public static List<string> GetDirectories(string path, SearchOption searchOption = SearchOption.AllDirectories, string searchPattern = "*")
@@ -403,6 +612,23 @@ namespace dynmapConverter
             var configDir = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts, 0, startFrom);
             var configFile = string.Join(Path.DirectorySeparatorChar.ToString(), configDir, "configuration.txt");
             return configFile;
+        }
+        public string getDynmapConfigFolder(string path)
+        {
+            // use the correct seperator for the environment
+            var pathParts = path.Split(Path.DirectorySeparatorChar);
+
+            // this assumes a case sensitive check. If you don't want this, you may want to loop through the pathParts looking
+            // for your "startAfterPath" with a StringComparison.OrdinalIgnoreCase check instead
+            int startFrom = Array.IndexOf(pathParts, "dynmap");
+            startFrom += 1;
+            if (startFrom == -1)
+            {
+                // path not found
+                return null;
+            }
+            var configDir = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts, 0, startFrom);
+            return configDir;
         }
     }
 }
