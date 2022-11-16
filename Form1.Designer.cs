@@ -135,6 +135,7 @@
             this.mysqlAddr.Name = "mysqlAddr";
             this.mysqlAddr.Size = new System.Drawing.Size(96, 20);
             this.mysqlAddr.TabIndex = 9;
+            this.mysqlAddr.Text = "172.16.4.21";
             this.mysqlAddr.Visible = false;
             // 
             // mysqlUser
@@ -143,6 +144,7 @@
             this.mysqlUser.Name = "mysqlUser";
             this.mysqlUser.Size = new System.Drawing.Size(96, 20);
             this.mysqlUser.TabIndex = 10;
+            this.mysqlUser.Text = "dynmap";
             this.mysqlUser.Visible = false;
             // 
             // mysqlPasswd
@@ -151,6 +153,7 @@
             this.mysqlPasswd.Name = "mysqlPasswd";
             this.mysqlPasswd.Size = new System.Drawing.Size(96, 20);
             this.mysqlPasswd.TabIndex = 11;
+            this.mysqlPasswd.Text = "Dynmap";
             this.mysqlPasswd.Visible = false;
             // 
             // mysqlDatabase
@@ -159,6 +162,7 @@
             this.mysqlDatabase.Name = "mysqlDatabase";
             this.mysqlDatabase.Size = new System.Drawing.Size(96, 20);
             this.mysqlDatabase.TabIndex = 12;
+            this.mysqlDatabase.Text = "Dynmap";
             this.mysqlDatabase.Visible = false;
             // 
             // mysqlUserText

@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Entity.Core.Mapping;
 using System.Data.SQLite;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
+using Org.BouncyCastle.Asn1.X509;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -18,6 +21,7 @@ namespace dynmapConverter
         {
             InitializeComponent();
             _cv.UpdateProgress += UpdateProgress;
+            _cv.UpdateStatus += UpdateStatus;
         }
         private void storageFromCombobox_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -107,7 +111,11 @@ namespace dynmapConverter
         }
         private void UpdateProgress(int progress)
         {
-            progressBar1.Value = progress;  
+            progressBar1.Value = progress;
+        }
+        private void UpdateStatus(string status)
+        {
+            progressLabel.Text = status;
         }
         private string _itemFrom = "";
         private string _itemTo = "";
@@ -137,12 +145,17 @@ namespace dynmapConverter
         private int foldersCount { get; set; }
         private string configDirFileLocation { get; set; }
         private string configDirLocation { get; set; }
+        private string defTemplateSuffix { get; set; }
         private GetConfigFile getConfig = new GetConfigFile();
+        //private GetMCData GMD = new GetMCData();
         internal delegate void UpdateProgressDelegate(int ProgressPercentage);
-
         internal event UpdateProgressDelegate UpdateProgress;
+
+        internal delegate void UpdateStatusDelegate(string status);
+        internal event UpdateStatusDelegate UpdateStatus;
         public void StartConversion()
         {
+            fromPath = "C:\\Users\\Jurgen\\dynmap-servers\\paper-1.19\\plugins\\dynmap\\web\\tiles";
             configDirFileLocation = getConfig.getDynmapConfig(fromPath);
             configDirLocation = getConfig.getDynmapConfigFolder(fromPath);
             Console.WriteLine(configDirFileLocation);
@@ -165,7 +178,11 @@ namespace dynmapConverter
                             Console.WriteLine(SQLite.dbfile);
                         }
                     }
-                } 
+                }
+                else if (item.Key == "deftemplatesuffix")
+                {
+                    defTemplateSuffix = item.Value;
+                }
             }
             if (start && from != null && to != null)
             {
@@ -180,6 +197,8 @@ namespace dynmapConverter
                     {
                         MessageBox.Show("sucessfully connected to: " + dbC.Server);
                     }
+                    UpdateStatus("Stage 1 of 2; creating MySQL tables ");
+                    Application.DoEvents();
                     dbC.InitDatabase();
                     foreach (var d in directories)
                     {
@@ -192,13 +211,18 @@ namespace dynmapConverter
                     }
                     foreach (var d in directories)
                     {
-                        Console.WriteLine(d);
+                        string worldName = new DirectoryInfo(d).Name;
+                        UpdateStatus("Stage 2 of 2; uploading image files");
+                        Application.DoEvents();
                         foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
                         {
                             mapsCount++;
+                            string mapName = new DirectoryInfo(folder).Name;
+                            dbC.SendDataMaps(mapsCount, worldName, mapName);
                             foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly)) //<worldname>/mapmape/mcaTileFolder
                             {
                                 foldersCount++;
+                                //Console.WriteLine(GMD.getMaps(configDirLocation, defTemplateSuffix, d));
                                 foreach (var image in Directory.GetFiles(MCAFolder))
                                 {
                                     FileStream fs = new FileStream(image, FileMode.Open, FileAccess.Read);
@@ -221,15 +245,18 @@ namespace dynmapConverter
                                     }
                                     //Console.WriteLine(zoomLevel);
                                     //Console.WriteLine(imageName + " x " + x + " y " + y + " zoom " + zoomLevel + " mapsCount " + mapsCount);
-                                    dbC.SendData(mapsCount, x, y, zoomLevel, imageData);
+                                    dbC.SendDataTiles(mapsCount, x, y, zoomLevel, imageData);
+                                    UpdateProgress(foldersCount * 100 / totalFoldersCount);
+
                                 }
                                 Console.WriteLine(MCAFolder);
-                                UpdateProgress(foldersCount*100/totalFoldersCount);
                                 Application.DoEvents();
                             }
-                            dbC.Close();
                         }
+                        dbC.Close();
                     }
+                    UpdateStatus("Done!");
+                    Application.DoEvents();
                     //MessageBox.Show(mapsCount.ToString());
                 }
                 if (from == "FileTree" && to == "SQLite")
@@ -238,9 +265,11 @@ namespace dynmapConverter
                     {
                         MessageBox.Show("Cannot connect to server: DBFile not configured in configuration.txt");
                     }
-                    else 
+                    else
                     {
                         Connection = SQLite.IsConnect;
+                        UpdateStatus("Stage 1 of 2; creating SQLite tables ");
+                        Application.DoEvents();
                         MessageBox.Show("sucessfully connected to: " + Connection.FileName);
                         SQLite.CreateTable(Connection);
                         var directories = CustomSearcher.GetDirectories(fromPath, SearchOption.TopDirectoryOnly); //tiles/<worldname>
@@ -256,9 +285,14 @@ namespace dynmapConverter
                         foreach (var d in directories)
                         {
                             Console.WriteLine(d);
+                            UpdateStatus("Stage 2 of 2; uploading image files");
+                            Application.DoEvents();
+                            string worldName = new DirectoryInfo(d).Name;
                             foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
                             {
                                 mapsCount++;
+                                string mapName = new DirectoryInfo(folder).Name;
+                                SQLite.SendDataMaps(Connection, mapsCount, worldName, mapName);
                                 foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly)) //<worldname>/mapmape/mcaTileFolder
                                 {
                                     foldersCount++;
@@ -284,7 +318,7 @@ namespace dynmapConverter
                                         }
                                         //Console.WriteLine(zoomLevel);
                                         //Console.WriteLine(imageName + " x " + x + " y " + y + " zoom " + zoomLevel + " mapsCount " + mapsCount);
-                                        SQLite.SendData(Connection, mapsCount, x, y, zoomLevel, imageData.Length, imageData);
+                                        SQLite.SendDataTiles(Connection, mapsCount, x, y, zoomLevel, imageData.Length, imageData);
                                     }
                                     Console.WriteLine(MCAFolder);
                                     UpdateProgress(foldersCount * 100 / totalFoldersCount);
@@ -292,6 +326,8 @@ namespace dynmapConverter
                                 }
                             }
                         }
+                        UpdateStatus("Done!");
+                        Application.DoEvents();
                     }
                 }
                 if (from == "SQLite" && to == "MySQL")
@@ -315,11 +351,35 @@ namespace dynmapConverter
                         MessageBox.Show("sucessfully connected to: " + Connection.FileName);
                         SQLite.CreateTable(Connection);
                     }
-                    DataTable dt = SQLite.ReadData(Connection);
-                    foreach(DataRow row in dt.Rows)
+                    DataTable dt = SQLite.ReadData(Connection, "Faces");
+                    foreach (DataRow row in dt.Rows)
                     {
-                        Console.WriteLine(row["MapID"]);
-                        dbC.SendData((int)row["MapID"], (int)row["x"], (int)row["y"], (int)row["zoom"], (byte[])row["Image"]);
+                        dbC.SendDataFaces((string)row["PlayerName"], (int)row["TypeID"], (byte[])row["Image"], (int)row["ImageLen"]);
+                    }
+                    dt = SQLite.ReadData(Connection, "Maps");
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        dbC.SendDataMaps((long)row["ID"],(string)row["WorldID"], (string)row["MapID"], (string)row["Variant"]);
+                    }
+                    dt = SQLite.ReadData(Connection, "MarkerFiles");
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        dbC.SendDataMarkerFiles((string)row["FileName"], (string)row["Content"]);
+                    }
+                    dt = SQLite.ReadData(Connection, "MarkerIcons");
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        dbC.SendDataMarkerIcons((string)row["IconName"], (byte[])row["Image"], (int)row["ImageLen"]);
+                    }
+                    dt = SQLite.ReadData(Connection, "SchemaVersion");
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        dbC.SendDataSchemaVersion((int)row["level"]);
+                    }
+                    dt = SQLite.ReadData(Connection, "Tiles");
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        dbC.SendDataTiles((int)row["MapID"], (int)row["x"], (int)row["y"], (int)row["zoom"], (byte[])row["Image"]);
                     }
                 }
             }
@@ -426,7 +486,76 @@ namespace dynmapConverter
 
             return true;
         }
-        public bool SendData(int mapID, int x, int y, int zoom, byte[] NewImage)
+        public bool SendDataFaces(string playerName, int typeID, byte[] image, int imageLen)
+        {
+            if (Connection.State != ConnectionState.Open)
+            {
+                Connection.Open();
+            }
+            string insertMapQuery = "INSERT INTO " + tableFaces + "(PlayerName, TypeID, Image, ImageLen) VALUES('" + playerName + "','" + typeID + "',?Images'" + imageLen + "');";
+            MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
+            MySqlParameter parImage = new MySqlParameter
+            {
+                ParameterName = "?Images",
+                MySqlDbType = MySqlDbType.MediumBlob,
+                Size = 3000000,
+                Value = image//here you should put your byte []
+            };
+            mySqlCommand.Parameters.Add(parImage);
+            mySqlCommand.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+        public bool SendDataMaps(long ID, string worldID, string mapName, string variant = "STANDARD", long serverID = 0)
+        {
+            if (Connection.State != ConnectionState.Open)
+            {
+                Connection.Open();
+            }
+            string insertMapQuery = "INSERT INTO " + tableMaps + "(ID, WorldID, MapID, Variant, ServerID) VALUES('" + ID + "','" + worldID + "','" + mapName + "','" + variant + "','" + serverID + "');";
+            MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
+            mySqlCommand.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+
+        public bool SendDataMarkerFiles(string fileName, string content)
+        {
+            string insertMapQuery = "INSERT INTO " + tableMarkerFiles + "(FileName, Content) VALUES('" + fileName + "','" + content + "');";
+            MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
+            mySqlCommand.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+        public bool SendDataMarkerIcons(string iconName, byte[] image, int imageLen)
+        {
+            if (Connection.State != ConnectionState.Open)
+            {
+                Connection.Open();
+            }
+            string insertMapQuery = "INSERT INTO " + tableMarkerIcons + "(IconName, Image, ImageLen) VALUES('" + iconName + "',?Images'" + imageLen + "');";
+            MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
+            MySqlParameter parImage = new MySqlParameter
+            {
+                ParameterName = "?Images",
+                MySqlDbType = MySqlDbType.Blob,
+                Size = 3000000,
+                Value = image//here you should put your byte []
+            };
+            mySqlCommand.Parameters.Add(parImage);
+            mySqlCommand.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+        public bool SendDataSchemaVersion(int level)
+        {
+            string insertMapQuery = "INSERT INTO " + tableSchemaVersion + "(level) VALUES('" + level + "');";
+            MySqlCommand mySqlCommand = new MySqlCommand(insertMapQuery, Connection);
+            mySqlCommand.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+        public bool SendDataTiles(int mapID, int x, int y, int zoom, byte[] NewImage)
         {
             if (Connection.State != ConnectionState.Open)
             {
@@ -449,7 +578,7 @@ namespace dynmapConverter
         public void Close()
         {
             Connection.Close();
-        }  
+        }
     }
 
     public class SQLiteDBConnection
@@ -539,7 +668,7 @@ namespace dynmapConverter
             }
             return true;
         }
-        public bool SendData(SQLiteConnection conn, int mapID, int x, int y,int zoom, int imageLength, byte[] NewImage)
+        public bool SendDataTiles(SQLiteConnection conn, int mapID, int x, int y, int zoom, int imageLength, byte[] NewImage)
         {
             string insertMapQuery = "INSERT INTO Tiles(mapID, x, y, zoom, HashCode, LastUpdate, Format, Image, ImageLen) VALUES('" + mapID + "','" + x + "','" + y + "','" + zoom + "',0,0,1,@Images," + imageLength + ")";
             //string insertMapQuery = "update Tiles set Image = ?Images where MapID = 1;";
@@ -558,8 +687,19 @@ namespace dynmapConverter
             //Int64 result = (long)mySqlCommand.ExecuteScalar();
             return true;
         }
-
-        public DataTable ReadData(SQLiteConnection conn)
+        public bool SendDataMaps(SQLiteConnection conn,int ID, string worldID, string mapName, string variant = "STANDARD", long serverID = 0)
+        {
+            if (conn.State != ConnectionState.Open)
+            {
+                conn.Open();
+            }
+            string insertMapQuery = "INSERT INTO Maps (ID, WorldID, MapID, Variant, ServerID) VALUES('" + ID + "','" + worldID + "','" + mapName + "','" + variant + "','" + serverID + "');";
+            SQLiteCommand SQLiteCommand = new SQLiteCommand(insertMapQuery, conn);
+            SQLiteCommand.ExecuteNonQueryAsync();
+            //Int64 result = (long)mySqlCommand.ExecuteScalar();
+            return true;
+        }
+        public DataTable ReadData(SQLiteConnection conn, string table)
         {
             SQLiteDataAdapter ad;
             DataTable dt = new DataTable();
@@ -568,7 +708,7 @@ namespace dynmapConverter
             {
                 SQLiteCommand cmd;
                 cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT * FROM Tiles";  //set the passed query
+                cmd.CommandText = "SELECT * FROM " + table;  //set the passed query
                 ad = new SQLiteDataAdapter(cmd);
                 ad.Fill(dt); //fill the datasource
             }
@@ -647,4 +787,53 @@ namespace dynmapConverter
             return configDir;
         }
     }
+    //public class GetMCData
+    //{
+    //    string filePrefix { get; set; }
+    //    string[] worldPrefixes { get; set; }
+    //    public string getMaps(string dynmapConfigFolder, string defTemplateSuffix, string world)
+    //    {
+    //        if (world.Contains("nether"))
+    //            filePrefix = "nether";
+    //        else if (world.Contains("the_end"))
+    //            filePrefix = "the_end";
+    //        else
+    //            filePrefix = "normal";
+    //        var deserializer = new DeserializerBuilder().WithNamingConvention(UnderscoredNamingConvention.Instance).Build();
+    //        dynamic WorldConfig = deserializer.Deserialize<ExpandoObject>(File.ReadAllText(string.Join(Path.DirectorySeparatorChar.ToString(), dynmapConfigFolder, "templates", string.Join("-", filePrefix, defTemplateSuffix + ".txt"))));
+    //        foreach (var item in WorldConfig)
+    //        {
+    //            if (item.Key == "templates")
+    //            {
+    //                foreach (var entry in item.Value)
+    //                {
+    //                    if (entry.Key == string.Join("-", filePrefix, defTemplateSuffix))
+    //                    {
+    //                        foreach (var option in entry.Value)
+    //                        {
+    //                            if (option.Key == "maps")
+    //                            {
+    //                                foreach (var mapConfig in option.Value)
+    //                                {
+    //                                    //if (mapConfig.Key == "prefix")
+    //                                    //{
+    //                                    //    worldPrefixes += entry.Value;
+    //                                    //    Console.WriteLine(entry.Value);
+    //                                    //}
+    //                                    foreach(var mapInfo in mapConfig)
+    //                                    {
+    //                                        if(mapInfo.Key == "prefix")
+    //                                            Console.WriteLine(mapInfo.Value);
+    //                                    }
+
+    //                                }
+    //                            }
+    //                        }
+    //                    }
+    //                }
+    //            }
+    //        }
+    //        return "true";
+    //    }
+    //}
 }
