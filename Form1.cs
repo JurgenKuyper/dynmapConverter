@@ -209,6 +209,8 @@ namespace dynmapConverter
                         UpdateProgress(currentFileValue * 100 / totalFilesCount);
                         Application.DoEvents();
                     }
+                    UpdateStatus("Done!");
+                    Application.DoEvents();
                 }
                 if (from == "FileTree" && to == "MySQL")
                 {
