@@ -186,6 +186,30 @@ namespace dynmapConverter
             }
             if (start && from != null && to != null)
             {
+                if (from == "FileTree" && to == "FileTree")
+                {
+                    int currentFileValue = 0, currentFolderValue = 0;
+                    totalFoldersCount = Directory.GetDirectories(fromPath,"*", SearchOption.AllDirectories).Count();
+                    int totalFilesCount = Directory.GetFiles(fromPath, "*", SearchOption.AllDirectories).Count();
+                    // Now Create all of the directories
+                    UpdateStatus("Stage 1 of 2; creating Directories");
+                    foreach (string dirPath in Directory.GetDirectories(fromPath, "*", SearchOption.AllDirectories))
+                    {
+                        currentFolderValue++;
+                        Directory.CreateDirectory(dirPath.Replace(fromPath, toPath));
+                        UpdateProgress(currentFolderValue * 100 / totalFoldersCount);
+                        Application.DoEvents();
+                    }
+                    UpdateStatus("Stage 2 of 2; copying files");
+                    //Copy all the files & Replaces any files with the same name
+                    foreach (string newPath in Directory.GetFiles(fromPath, "*.*", SearchOption.AllDirectories))
+                    {
+                        currentFileValue++;
+                        File.Copy(newPath, newPath.Replace(fromPath, toPath), true);
+                        UpdateProgress(currentFileValue * 100 / totalFilesCount);
+                        Application.DoEvents();
+                    }
+                }
                 if (from == "FileTree" && to == "MySQL")
                 {
                     dbC.Password = msPwd;
@@ -205,8 +229,7 @@ namespace dynmapConverter
                         Console.WriteLine(d);
                         foreach (var folder in CustomSearcher.GetDirectories(d, SearchOption.TopDirectoryOnly)) //<worldname>/mapsnames
                         {
-                            foreach (var MCAFolder in CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly))
-                                totalFoldersCount++;
+                            totalFoldersCount += (CustomSearcher.GetDirectories(folder, SearchOption.TopDirectoryOnly)).Count();
                         }
                     }
                     foreach (var d in directories)
@@ -330,6 +353,10 @@ namespace dynmapConverter
                         Application.DoEvents();
                     }
                 }
+                if (from == "SQLite" && to == "FileTree")
+                {
+                    //TODO
+                }
                 if (from == "SQLite" && to == "MySQL")
                 {
                     dbC.Password = msPwd;
@@ -381,6 +408,22 @@ namespace dynmapConverter
                     {
                         dbC.SendDataTiles((int)row["MapID"], (int)row["x"], (int)row["y"], (int)row["zoom"], (byte[])row["Image"]);
                     }
+                }
+                if (from == "SQLite" && to == "SQLite")
+                {
+                    //TODO
+                }
+                if (from == "MySQL" && to == "FileTree")
+                {
+                    //TODO
+                }
+                if (from == "MySQL" && to == "SQLite")
+                {
+                    //TODO
+                }
+                if (from == "MySQL" && to == "MySQL")
+                {
+                    //TODO
                 }
             }
         }

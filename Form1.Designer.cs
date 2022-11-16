@@ -82,6 +82,7 @@
             // 
             this.storageToCombobox.FormattingEnabled = true;
             this.storageToCombobox.Items.AddRange(new object[] {
+            "FileTree",
             "SQLite",
             "MySQL"});
             this.storageToCombobox.Location = new System.Drawing.Point(565, 208);
@@ -95,7 +96,8 @@
             this.storageFromCombobox.FormattingEnabled = true;
             this.storageFromCombobox.Items.AddRange(new object[] {
             "FileTree",
-            "SQLite"});
+            "SQLite",
+            "MySQL"});
             this.storageFromCombobox.Location = new System.Drawing.Point(163, 208);
             this.storageFromCombobox.Name = "storageFromCombobox";
             this.storageFromCombobox.Size = new System.Drawing.Size(117, 21);
