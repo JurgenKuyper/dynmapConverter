@@ -1,4 +1,4 @@
-﻿namespace DynmapConverterV2
+﻿namespace dynmapConverter
 {
     partial class Form1
     {

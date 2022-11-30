@@ -1,6 +1,6 @@
 using System.Data;
 
-namespace DynmapConverterV2
+namespace dynmapConverter
 {
     public partial class Form1 : Form
     {

@@ -6,7 +6,7 @@ using MySql.Data.MySqlClient;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace DynmapConverterV2
+namespace dynmapConverter
 {
     internal static class Program
     {
