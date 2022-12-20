@@ -17,10 +17,10 @@ namespace dynmapConverter
             _cv.from = _itemFrom;
             if (_itemFrom == "MySQL")
             {
-                mysqlUserText.Visible = true;
-                mysqlPasswdText.Visible = true;
-                mysqlAddress.Visible = true;
-                mysqlDbText.Visible = true;
+                fromMysqlAddrText.Visible = true;
+                fromMysqlPasswdText.Visible = true;
+                fromMysqlUserText.Visible = true;
+                fromMysqlDbText.Visible = true;
                 fromMysqlAddr.Visible = true;
                 fromMysqlUser.Visible = true;
                 fromMysqlPasswd.Visible = true;
@@ -28,10 +28,10 @@ namespace dynmapConverter
             }
             else
             {
-                mysqlUserText.Visible = false;
-                mysqlPasswdText.Visible = false;
-                mysqlAddress.Visible = false;
-                mysqlDbText.Visible = false;
+                fromMysqlAddrText.Visible = false;
+                fromMysqlPasswdText.Visible = false;
+                fromMysqlUserText.Visible = false;
+                fromMysqlDbText.Visible = false;
                 fromMysqlAddr.Visible = false;
                 fromMysqlUser.Visible = false;
                 fromMysqlPasswd.Visible = false;

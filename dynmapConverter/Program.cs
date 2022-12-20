@@ -69,6 +69,10 @@ namespace dynmapConverter
 
         internal delegate void UpdateStatusDelegate(string status);
         internal event UpdateStatusDelegate UpdateStatus;
+        interface iStorage
+        {
+
+        }
         public void StartConversion()
         {
             configDirFileLocation = getConfig.getDynmapConfig(fromPath);
